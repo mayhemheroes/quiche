@@ -1,0 +1,8 @@
+project: quiche
+target: http_frame_fuzzer
+cmds:
+  - cmd: /mayhem/http_frame_fuzzer
+    libfuzzer: true
+testsuite:
+  - https://$MAYHEM_DOMAIN/$MAYHEM_PROJECT/$MAYHEM_TARGET/testsuite.tar
+  - file://mayhem/http_frame_fuzzer/testsuite
