@@ -1,0 +1,49 @@
+diff --git a/quiche/BUILD.bazel b/quiche/BUILD.bazel
+index bbd0ea483..def9af2ea 100644
+--- a/quiche/BUILD.bazel
++++ b/quiche/BUILD.bazel
+@@ -310,6 +310,15 @@ cc_library(
+     ],
+ )
+
++cc_binary(
++    name = "http_frame_fuzzer",
++    srcs = ["http2/decoder/http2_frame_decoder_mayhem_fuzzer.cc"],
++    deps = [
++        ":quiche_core",
++    ],
++    linkstatic = True,
++)
++
+ test_suite_from_source_list(
+     name = "quiche_tests",
+     srcs = quiche_tests_srcs,
+diff --git a/quiche/http2/decoder/http2_frame_decoder_mayhem_fuzzer.cc b/quiche/http2/decoder/http2_frame_decoder_mayhem_fuzzer.cc
+new file mode 100644
+index 000000000..eab2a023f
+--- /dev/null
++++ b/quiche/http2/decoder/http2_frame_decoder_mayhem_fuzzer.cc
+@@ -0,0 +1,23 @@
++// Mayhem libFuzzer harness for quiche's HTTP/2 frame decoder.
++//
++// Mirrors the logic quiche itself ships (but does not yet wire into Bazel) in the sibling
++// http2_frame_decoder_fuzzer.cc FUZZ_TEST — same decoder entry point (Http2FrameDecoder::DecodeFrame),
++// same no-op listener — but written as a plain LLVMFuzzerTestOneInput so it builds as a self-contained
++// libFuzzer binary: no fuzztest/gtest "--fuzz=Suite.Test" selector argument is needed to run it, which
++// Mayhem's dispatcher (and our local fuzz-smoke gate) requires — a Mayhemfile `cmd:` target must be a
++// directly-runnable libFuzzer ELF, not a multi-test binary needing an extra flag before the libFuzzer
++// arguments.
++#include <cstddef>
++#include <cstdint>
++
++#include "quiche/http2/decoder/decode_buffer.h"
++#include "quiche/http2/decoder/http2_frame_decoder.h"
++#include "quiche/http2/decoder/http2_frame_decoder_listener.h"
++
++extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
++  http2::Http2FrameDecoderNoOpListener listener;
++  http2::Http2FrameDecoder decoder(&listener);
++  http2::DecodeBuffer db(reinterpret_cast<const char *>(data), size);
++  decoder.DecodeFrame(&db);
++  return 0;
++}
